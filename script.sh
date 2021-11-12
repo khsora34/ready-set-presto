@@ -23,6 +23,12 @@ eval "chmod +x kafka-tpch"
 eval "./kafka-tpch load --brokers localhost:9092 --prefix tpch. --tpch-type tiny"
 
 
+# Benchmark driver
+eval "cd presto-benchmark"
+eval "wget -O presto-benchmark-driver https://repo1.maven.org/maven2/com/facebook/presto/presto-benchmark-driver/0.265.1/presto-benchmark-driver-0.265.1-executable.jar"
+eval "chmod +x presto-benchmark-driver"
+eval "./presto-benchmark-driver --server localhost:8080 --debug --warm 10 --catalog kafka"
+
 eval "presto-server/bin/launcher start"
 
 eval "./presto --catalog kafka --schema tpch"
