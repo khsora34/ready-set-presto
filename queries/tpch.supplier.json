@@ -1,0 +1,61 @@
+{
+    "tableName": "supplier",
+    "schemaName": "tpch",
+    "topicName": "tpch.supplier",
+    "key": {
+        "dataFormat": "raw",
+        "fields": [
+            {
+                "name": "kafka_key",
+                "dataFormat": "LONG",
+                "type": "BIGINT",
+                "hidden": "false"
+            }
+        ]
+    },
+    "message": {
+        "dataFormat": "json",
+        "fields": [
+            {
+                "name": "row_number",
+                "mapping": "rowNumber",
+                "type": "BIGINT"
+            },
+            {
+                "name": "supplier_key",
+                "mapping": "supplierKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "name",
+                "mapping": "name",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "address",
+                "mapping": "address",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "nation_key",
+                "mapping": "nationKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "phone",
+                "mapping": "phone",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "account_balance",
+                "mapping": "accountBalance",
+                "type": "DOUBLE"
+            },
+            {
+                "name": "comment",
+                "mapping": "comment",
+                "type": "VARCHAR"
+            }
+        ]
+    }
+}

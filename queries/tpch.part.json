@@ -1,0 +1,71 @@
+{
+    "tableName": "part",
+    "schemaName": "tpch",
+    "topicName": "tpch.part",
+    "key": {
+        "dataFormat": "raw",
+        "fields": [
+            {
+                "name": "kafka_key",
+                "dataFormat": "LONG",
+                "type": "BIGINT",
+                "hidden": "false"
+            }
+        ]
+    },
+    "message": {
+        "dataFormat": "json",
+        "fields": [
+            {
+                "name": "row_number",
+                "mapping": "rowNumber",
+                "type": "BIGINT"
+            },
+            {
+                "name": "part_key",
+                "mapping": "partKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "name",
+                "mapping": "name",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "manufacturer",
+                "mapping": "manufacturer",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "brand",
+                "mapping": "brand",
+                "type": "BIGINT"
+            },
+            {
+                "name": "type",
+                "mapping": "type",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "size",
+                "mapping": "size",
+                "type": "INT"
+            },
+            {
+                "name": "container",
+                "mapping": "container",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "retail_price",
+                "mapping": "retailPrice",
+                "type": "DOUBLE"
+            },
+            {
+                "name": "comment",
+                "mapping": "comment",
+                "type": "VARCHAR"
+            }
+        ]
+    }
+}
