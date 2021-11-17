@@ -1,6 +1,5 @@
-
 select
-    s.acctbal,
+    s.account_balance,
     s.name,
     n.name,
     p.part_key,
@@ -11,34 +10,34 @@ select
 from
     part p
       JOIN partsupp ps
-      ON p.part_key = ps.partkey
+      ON p.part_key = ps.part_key
       JOIN supplier s
-      ON s.suppkey = ps.suppkey
+      ON s.supplier_key = ps.supplier_key
       JOIN nation n
-      ON s.nationkey = n.nationkey
+      ON s.nation_key = n.nation_key
       JOIN region r
-      ON n.regionkey = r.regionkey
+      ON n.region_key = r.region_key
 where
     p.size = 15
     and p.type like 'BRASS'
     and r.name = 'EUROPE'
-    and ps.supplycost = (
+    and ps.supply_cost = (
         select
-            min(ps.supplycost)
+            min(psMin.supply_cost)
         from
             partsupp psMin
               JOIN supplier sMin
-              ON sMin.suppkey = psMin.suppkey
+              ON sMin.supplier_key = psMin.supplier_key
               JOIN nation nMin
-              ON sMin.nationkey = nMin.nationkey
+              ON sMin.nation_key = nMin.nation_key
               JOIN region rMin
-              ON nMin.regionkey = rMin.regionkey
+              ON nMin.region_key = rMin.region_key
         where
-          p.part_key = psMin.partkey
-          and r.name = 'EUROPE'
+          p.part_key = psMin.part_key
+          and rMin.name = 'EUROPE'
     )
 order by
-    s.acctbal desc,
+    s.account_balance desc,
     n.name,
     s.name,
     p.part_key;
