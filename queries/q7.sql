@@ -10,15 +10,15 @@ from (
         l.extended_price * (1 - l.discount) as volume
     from
         supplier s
-            join lineitem l
+        join lineitem l
             on s.supplier_key = l.supplier_key
-            join orders o
+        join orders o
             on o.order_key = l.order_key
-            join customer c
+        join customer c
             on c.customer_key = o.customer_key
-            join nation n1
+        join nation n1
             on s.nation_key = n1.nation_key
-            join nation n2
+        join nation n2
             on c.nation_key = n2.nation_key 
     where
         (
