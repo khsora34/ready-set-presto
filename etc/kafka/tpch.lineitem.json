@@ -1,0 +1,106 @@
+{
+    "tableName": "lineitem",
+    "schemaName": "tpch",
+    "topicName": "tpch.lineitem",
+    "key": {
+        "dataFormat": "raw",
+        "fields": [
+            {
+                "name": "kafka_key",
+                "dataFormat": "LONG",
+                "type": "BIGINT",
+                "hidden": "false"
+            }
+        ]
+    },
+    "message": {
+        "dataFormat": "json",
+        "fields": [
+            {
+                "name": "row_number",
+                "mapping": "rowNumber",
+                "type": "BIGINT"
+            },
+            {
+                "name": "order_key",
+                "mapping": "orderKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "part_key",
+                "mapping": "partKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "supp_key",
+                "mapping": "supplierKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "line_number",
+                "mapping": "lineNumber",
+                "type": "INT"
+            },
+            {
+                "name": "quantity",
+                "mapping": "quantity",
+                "type": "DOUBLE"
+            },
+            {
+                "name": "extended_price",
+                "mapping": "extendedPrice",
+                "type": "DOUBLE"
+            },
+            {
+                "name": "discount",
+                "mapping": "discount",
+                "type": "DOUBLE"
+            },
+            {
+                "name": "tax",
+                "mapping": "tax",
+                "type": "DOUBLE"
+            },
+            {
+                "name": "return_flag",
+                "mapping": "returnFlag",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "status",
+                "mapping": "status",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "ship_date",
+                "mapping": "shipDate",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "commit_date",
+                "mapping": "shipDate",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "receipt_date",
+                "mapping": "receiptDate",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "ship_instructions",
+                "mapping": "shipInstructions",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "ship_mode",
+                "mapping": "shipMode",
+                "type": "VARCHAR"
+            },
+            {
+                "name": "comment",
+                "mapping": "comment",
+                "type": "VARCHAR"
+            }
+        ]
+    }
+}
