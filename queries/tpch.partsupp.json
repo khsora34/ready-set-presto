@@ -1,0 +1,51 @@
+{
+    "tableName": "partsupp",
+    "schemaName": "tpch",
+    "topicName": "tpch.partsupp",
+    "key": {
+        "dataFormat": "raw",
+        "fields": [
+            {
+                "name": "kafka_key",
+                "dataFormat": "LONG",
+                "type": "BIGINT",
+                "hidden": "false"
+            }
+        ]
+    },
+    "message": {
+        "dataFormat": "json",
+        "fields": [
+            {
+                "name": "row_number",
+                "mapping": "rowNumber",
+                "type": "BIGINT"
+            },
+            {
+                "name": "part_key",
+                "mapping": "partKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "supplier_key",
+                "mapping": "supplierKey",
+                "type": "BIGINT"
+            },
+            {
+                "name": "available_quantity",
+                "mapping": "availableQuantity",
+                "type": "INT"
+            },
+            {
+                "name": "supply_cost",
+                "mapping": "supplyCost",
+                "type": "DOUBLE"
+            },
+            {
+                "name": "comment",
+                "mapping": "comment",
+                "type": "VARCHAR"
+            }
+        ]
+    }
+}
