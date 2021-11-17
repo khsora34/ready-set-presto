@@ -19,7 +19,7 @@ from
       ON n.region_key = r.region_key
 where
     p.size = 15
-    and p.type like 'BRASS'
+    and p.type like '%BRASS'
     and r.name = 'EUROPE'
     and ps.supply_cost = (
         select
