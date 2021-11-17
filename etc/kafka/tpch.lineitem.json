@@ -32,7 +32,7 @@
                 "type": "BIGINT"
             },
             {
-                "name": "supp_key",
+                "name": "supplier_key",
                 "mapping": "supplierKey",
                 "type": "BIGINT"
             },
