@@ -39,7 +39,7 @@
             {
                 "name": "brand",
                 "mapping": "brand",
-                "type": "BIGINT"
+                "type": "VARCHAR"
             },
             {
                 "name": "type",
