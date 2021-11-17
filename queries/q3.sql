@@ -5,7 +5,7 @@ select
     o.ship_priority
 from 
     customer c
-        join orders o
+    join orders o
         on c.customer_key = o.customer_key 
     join lineitem l
         on l.order_key = o.order_key
