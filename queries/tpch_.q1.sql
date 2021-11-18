@@ -16,4 +16,4 @@ where
 group by
     l.return_flag, l.status
 order by
-    l.return_flag, l.status;
+    l.return_flag, l.status
