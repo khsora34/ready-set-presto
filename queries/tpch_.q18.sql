@@ -14,13 +14,13 @@ from
 where 
     o.order_key in (
         select
-        l.order_key
+        l1.order_key
         from
-            lineitem
+            lineitem l1
         group by 
-            l.order_key
+            l1.order_key
         having 
-            sum(l.quantity) > 313
+            sum(l1.quantity) > 300
 )
 group by 
     c.name, 
