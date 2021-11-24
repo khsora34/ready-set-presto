@@ -5,7 +5,7 @@ eval "cd presto-test"
 eval "wget https://repo1.maven.org/maven2/com/facebook/presto/presto-server/0.264.1/presto-server-0.264.1.tar.gz"
 eval "tar -xvzf presto-server-0.264.1.tar.gz && mv presto-server-0.264.1 presto-server"
 eval "mkdir data"
-eval "cd presto-server"
+eval "cp -r ../../etc/ ./presto-server"
 
 # Presto CLI
 eval "wget -O presto https://repo1.maven.org/maven2/com/facebook/presto/presto-cli/0.264.1/presto-cli-0.264.1-executable.jar"
@@ -22,13 +22,13 @@ eval "wget -O kafka-tpch https://repo1.maven.org/maven2/de/softwareforge/kafka_t
 eval "chmod +x kafka-tpch"
 eval "./kafka-tpch load --brokers localhost:9092 --prefix tpch. --tpch-type tiny"
 
+eval "presto-server/bin/launcher start"
 
 # Benchmark driver
+eval "cp -r ../../presto-benchmark/ ."
 eval "cd presto-benchmark"
 eval "wget -O presto-benchmark-driver https://repo1.maven.org/maven2/com/facebook/presto/presto-benchmark-driver/0.265.1/presto-benchmark-driver-0.265.1-executable.jar"
 eval "chmod +x presto-benchmark-driver"
 eval "./presto-benchmark-driver --server localhost:8080 --debug --warm 10 --catalog kafka"
 
-eval "presto-server/bin/launcher start"
-
-eval "./presto --catalog kafka --schema tpch"
+#eval "./presto --catalog kafka --schema tpch"
