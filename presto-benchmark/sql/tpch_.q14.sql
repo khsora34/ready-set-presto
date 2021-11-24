@@ -9,4 +9,4 @@ from
     join part p
         on l.part_key = p.part_key
 and date(l.ship_date) >= date ('1995-09-01')
-and date(l.ship_date) < date(date ('1995-09-01') + interval '1' month);
+and date(l.ship_date) < date(date ('1995-09-01') + interval '1' month)

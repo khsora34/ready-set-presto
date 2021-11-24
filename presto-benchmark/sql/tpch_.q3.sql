@@ -19,4 +19,4 @@ group by
     o.ship_priority
 order by 
     revenue desc, 
-    o.order_date;
+    o.order_date

@@ -28,4 +28,4 @@ group by
     c.address, 
     c.comment
 order by
-    revenue desc;
+    revenue desc

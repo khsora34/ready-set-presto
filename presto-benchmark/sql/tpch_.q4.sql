@@ -18,4 +18,4 @@ and exists (
 group by 
     o.order_priority
 order by 
-    o.order_priority;
+    o.order_priority

@@ -47,4 +47,4 @@ where
 group by 
     n.name
 order by 
-    revenue desc;
+    revenue desc

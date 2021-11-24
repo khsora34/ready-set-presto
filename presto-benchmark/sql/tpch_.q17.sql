@@ -14,4 +14,4 @@ where
             lineitem lItem
         where
             lItem.part_key = p.part_key
-    );
+    )

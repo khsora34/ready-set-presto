@@ -34,4 +34,4 @@ where
     and s.nation_key = n.nation_key
     and n.name = 'CANADA'
 order by
-    s.name;
+    s.name

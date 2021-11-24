@@ -24,4 +24,4 @@ group by
                 nSum.name = 'GERMANY'
         )
 order by
-    value desc;
+    value desc

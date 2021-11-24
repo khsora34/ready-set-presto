@@ -40,4 +40,4 @@ order by
     s.account_balance desc,
     n.name,
     s.name,
-    p.part_key;
+    p.part_key
