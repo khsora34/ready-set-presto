@@ -21,30 +21,4 @@ where
 group by 
     n.name
 order by 
-    revenue desc;
-
-
-select
-    n.name, 
-    sum(l.extended_price * (1 - l.discount)) as revenue
-from 
-    customer c
-    ,orders o
-    ,lineitem l
-    ,supplier s
-    ,nation n
-    ,region r
-where
-    c.customer_key = o.customer_key
-    and l.order_key = o.order_key
-    and s.supplier_key = l.supplier_key
-    and c.nation_key = s.nation_key
-    and n.nation_key = s.nation_key
-    and r.region_key = n.region_key
-    and r.name = 'ASIA'
-    and date(o.order_date) >= date ('1994-01-01')
-    and date(o.order_date) < date(date ('1994-01-01') + interval '1' year)
-group by 
-    n.name
-order by 
     revenue desc
