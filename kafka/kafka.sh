@@ -3,9 +3,9 @@ eval "tar -xzf kafka.tgz && mv kafka_2.13-3.0.0 kafka-server"
 
 eval "cp kafka/server.properties kafka-server/config/server.properties"
 eval "echo 'broker.id=$1' >> kafka-server/config/server.properties"
-eval "echo 'advertised.host.name=$2'"
+eval "echo 'advertised.host.name=$2' >> kafka-server/config/server.properties"
 
-eval "echo -n '$1' > /mnt/nvme/pperezodriguez/myid"
+eval "echo -n '$1' > /mnt/ssd/pperezrodriguez/myid"
 
 eval "cp kafka/zookeeper.properties kafka-server/config/zookeeper.properties"
 
