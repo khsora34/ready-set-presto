@@ -7,279 +7,568 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{listings}
+\usepackage{color}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\lstset{language=SQL,
+  basicstyle={\small\ttfamily},
+  belowskip=0mm,
+  breakatwhitespace=true,
+  breaklines=true,
+  classoffset=0,
+  columns=flexible,
+  commentstyle=\color{dkgreen},
+  framexleftmargin=0.25em,
+  frameshape={}{}{}{}, %To remove to vertical lines on left, set `frameshape={}{}{}{}`
+  keywordstyle=\color{blue},
+  numbers=none, %If you want line numbers, set `numbers=left`
+  numberstyle=\tiny\color{gray},
+  showstringspaces=false,
+  stringstyle=\color{mauve},
+  tabsize=3,
+  xleftmargin =1em
+}
+\usepackage{url}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\usepackage[font=footnotesize,center]{caption}
+\usepackage{enumitem}
+
 \begin{document}
 
-\title{Presto*\\
-{\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore and
-should not be used}
-\thanks{Identify applicable funding agency here. If none, delete this.}
+\title{Exploring Distributed Query Engines: Presto\\
+{\footnotesize Term-project report for course CS456 - Parallel and Distributed Processing}
 }
 
 \author{\IEEEauthorblockN{Pablo Pérez Rodríguez}
 \IEEEauthorblockA{\textit{Scalable Computing Software Laboratory} \\
-\textit{IIT}\\
+\textit{Illinois Institute of Technology}\\
 Chicago, United States \\
 pperezrodriguez@hawk.iit.edu}
 \and
 \IEEEauthorblockN{Francisco del Real Escudero}
 \IEEEauthorblockA{\textit{Scalable Computing Software Laboratory} \\
-\textit{IIT}\\
+\textit{Illinois Institute of Technology}\\
 Chicago, United States \\
 fdelrealescudero@hawk.iit.edu}
 }
 
 \maketitle
+\thispagestyle{plain}
+\pagestyle{plain}
 
 \begin{abstract}
-This document is a model and instructions for \LaTeX.
-This and the IEEEtran.cls file define the components of your paper [title, text, heads, etc.]. *CRITICAL: Do Not Use Symbols, Special Characters, Footnotes, 
-or Math in Paper Title or Abstract.
+Many applications used currently in industry and research generate massive amounts of data. Additionally, there has been a recent growth in the need to process these data to extract knowledge from them. However, traditional database systems struggle to provide a scalable and efficient way to perform these tasks. Because of this, many query engines that make use of the distributed capabilities to perform these operations have emerged, and one of these systems is Facebook Presto. In this paper, we perform a study of the design, architecture, and functionalities of Presto, and we present some benchmarking results we obtained from a Presto installation on a multi-node cluster querying data from Apache Kafka, and the advantages and disadvantages we have found testing with it.
 \end{abstract}
 
 \begin{IEEEkeywords}
-component, formatting, style, styling, insert
+Facebook Presto, SQL, distributed query engine, big data, benchmarking
 \end{IEEEkeywords}
 
 \section{Introduction}
-Basic Distributed SQL Query Engine definition.
+Traditional big data systems have been focused on optimized run-time operations performed by applications, mainly, storing and processing data. As these operations happen online during the application lifetime, improving their performance significantly increases the throughput, reactiveness, and user experience of these applications. Nevertheless, over the last few years, we have seen a growing interest in the need to query and read huge amounts of data to improve insights and acquire knowledge from the stored data. This task, traditionally performed by database systems, proved to suffer from low performance due to their limited scalability until it became a major bottleneck in the data processing pipeline \cite{pokorny-2011}.
 
-Presto basic intro.
+Because of this, there has been a growth in the popularity of distributed SQL query engines. These distributed systems aim to provide fast and highly scalable queries on data storage systems making use of the distributed capabilities. For example, Apache Drill and Apache Impala are two distributed SQL query engines commonly used to support a variety of data retrieval needs.
 
-Paper goals.
+Presto is another example of a distributed SQL query engine. It has been designed to query vast amounts of data operating over a wide range of data sources, such as relational databases, NoSQL systems, and stream processing systems. Furthermore, it can operate over more than one at the same time \cite{sethi-2019}. It is an open-source project currently used by many large companies like Facebook, Uber, and Airbnb, among others \cite{facebook-presto-no-date}.
 
-This document is a model and instructions for \LaTeX.
-Please observe the conference page limits.
+The idea of Presto came from Facebook's need of processing their data as fast as possible. At the time they were using Hive to perform these queries, but they thought they were too slow for their needs. Currently, Presto is being used in production at Facebook to handle several of their internal workloads \cite{sethi-2019}\cite{chen-2016B}. It has been built to be adaptive, flexible, and extensible, giving support to a wide range of use cases with many different characteristics. For example, Presto is used at Facebook to execute multi-hour ETL (extract-transform-load) jobs, provide data for high-performance dashboards, support several end-user analytic tools, or extract insights in the means of BI queries \cite{sethi-2019}. Overall, Presto is responsible for fetching and processing hundreds of petabytes of data every day at Facebook.
 
-\section{Presto Background}
-Goals.
-Architecture.
-Design decisions.
+To support this, Presto was engineered from the beginning with the goal of maximizing performance. As we explain in the following sections, this is a key design decision and has some implications that will be discussed along with the paper.
 
-\section{Apache Kafka}
-Why we have chosen Kafka.
+Another important goal of Presto is to be extensible \cite{sethi-2019}. This means that Presto can connect to several types of data sources. These connections can be achieved with some basic configuration. Doing that, Presto is capable of fetching data from those data sources transparently for the user.
 
-How it works.
+The main goal of this paper is to explore the design and functionality of Presto as a distributed query engine. Furthermore, we will explore its architecture, we will evaluate its performance and we will analyze the trade-offs that it may have.
 
-\section{Benchmarking}
-What we need to measure.
-Why TPCH.
-TPCH details (tables, queries, etc.)
+For this purpose, section \ref{background} will focus on its main characteristics, including its design, how it works, and the high-level API that can be used to query Presto. This section also introduces an event streaming platform, Apache Kafka, that we have used to store the data used in our benchmarks. Later, section \ref{benchmark} will explain the details of the benchmark carried out, including information about the dataset selected and specifics of the queries used for the evaluation. Section \ref{setup} will provide the details of the installation that was used for benchmarking Presto, and section \ref{results} will show the results of the evaluation. Finally, in section \ref{conclusions}, we will review the content of the project and provide some conclusions about the results of the benchmark, as well as some future work for the evaluation.
 
+\section{Background and Motivation}\label{background}
+\subsection{Facebook Presto}
+Facebook Presto is an open-source distributed SQL query engine. Its main goal is to provide an efficient way to query vast amounts of data providing an ANSI SQL interface. It has been built to provide high performance, being able to run hundreds of queries concurrently and scaling to thousands of nodes \cite{sethi-2019}.
 
-\subsection{Maintaining the Integrity of the Specifications}
+It has been designed to be able to operate over several kinds of data sources, ranging from traditional relational database systems such as PostgreSQL or MySQL, to NoSQL systems including Hadoop environments, and stream processing systems such as Apache Kafka \cite{facebook-presto-no-date}.
 
-The IEEEtran class file is used to format your paper and style the text. All margins, 
-column widths, line spaces, and text fonts are prescribed; please do not 
-alter them. You may note peculiarities. For example, the head margin
-measures proportionately more than is customary. This measurement 
-and others are deliberate, using specifications that anticipate your paper 
-as one part of the entire proceedings, and not as an independent document. 
-Please do not revise any of the current designations.
+One of the most interesting aspects of Presto is that it can query data from all of these sources simultaneously under a single SQL query. That makes Presto good in two aspects: it can handle all the intricacies of fetching data from a heterogeneous set of sources, and also it can be used by several users that may only know about querying with SQL \cite{sethi-2019}.
 
-\section{Prepare Your Paper Before Styling}
-Before you begin to format your paper, first write and save the content as a 
-separate text file. Complete all content and organizational editing before 
-formatting. Please note sections \ref{AA}--\ref{SCM} below for more information on 
-proofreading, spelling and grammar.
+Presto has also been designed to be flexible and extensible, so connecting it with a new data source is simply done by creating a new \textit{connector}, a plugin that enables Presto to read and write data from an external system \cite{bharathan-2022}. Nevertheless, there is already a Presto connector for the most common data storage systems, so for most use cases, connecting Presto to a data installation is a rather simple task.
 
-Keep your text and graphic files separate until after the text has been 
-formatted and styled. Do not number text heads---{\LaTeX} will do that 
-for you.
-
-\subsection{Abbreviations and Acronyms}\label{AA}
-Define abbreviations and acronyms the first time they are used in the text, 
-even after they have been defined in the abstract. Abbreviations such as 
-IEEE, SI, MKS, CGS, ac, dc, and rms do not have to be defined. Do not use 
-abbreviations in the title or heads unless they are unavoidable.
-
-\subsection{Units}
-\begin{itemize}
-\item Use either SI (MKS) or CGS as primary units. (SI units are encouraged.) English units may be used as secondary units (in parentheses). An exception would be the use of English units as identifiers in trade, such as ``3.5-inch disk drive''.
-\item Avoid combining SI and CGS units, such as current in amperes and magnetic field in oersteds. This often leads to confusion because equations do not balance dimensionally. If you must use mixed units, clearly state the units for each quantity that you use in an equation.
-\item Do not mix complete spellings and abbreviations of units: ``Wb/m\textsuperscript{2}'' or ``webers per square meter'', not ``webers/m\textsuperscript{2}''. Spell out units when they appear in text: ``. . . a few henries'', not ``. . . a few H''.
-\item Use a zero before decimal points: ``0.25'', not ``.25''. Use ``cm\textsuperscript{3}'', not ``cc''.)
-\end{itemize}
-
-\subsection{Equations}
-Number equations consecutively. To make your 
-equations more compact, you may use the solidus (~/~), the exp function, or 
-appropriate exponents. Italicize Roman symbols for quantities and variables, 
-but not Greek symbols. Use a long dash rather than a hyphen for a minus 
-sign. Punctuate equations with commas or periods when they are part of a 
-sentence, as in:
-\begin{equation}
-a+b=\gamma\label{eq}
-\end{equation}
-
-Be sure that the 
-symbols in your equation have been defined before or immediately following 
-the equation. Use ``\eqref{eq}'', not ``Eq.~\eqref{eq}'' or ``equation \eqref{eq}'', except at 
-the beginning of a sentence: ``Equation \eqref{eq} is . . .''
-
-\subsection{\LaTeX-Specific Advice}
-
-Please use ``soft'' (e.g., \verb|\eqref{Eq}|) cross references instead
-of ``hard'' references (e.g., \verb|(1)|). That will make it possible
-to combine sections, add equations, or change the order of figures or
-citations without having to go through the file line by line.
-
-Please don't use the \verb|{eqnarray}| equation environment. Use
-\verb|{align}| or \verb|{IEEEeqnarray}| instead. The \verb|{eqnarray}|
-environment leaves unsightly spaces around relation symbols.
-
-Please note that the \verb|{subequations}| environment in {\LaTeX}
-will increment the main equation counter even when there are no
-equation numbers displayed. If you forget that, you might write an
-article in which the equation numbers skip from (17) to (20), causing
-the copy editors to wonder if you've discovered a new method of
-counting.
-
-{\BibTeX} does not work by magic. It doesn't get the bibliographic
-data from thin air but from .bib files. If you use {\BibTeX} to produce a
-bibliography you must send the .bib files. 
-
-{\LaTeX} can't read your mind. If you assign the same label to a
-subsubsection and a table, you might find that Table I has been cross
-referenced as Table IV-B3. 
-
-{\LaTeX} does not have precognitive abilities. If you put a
-\verb|\label| command before the command that updates the counter it's
-supposed to be using, the label will pick up the last counter to be
-cross referenced instead. In particular, a \verb|\label| command
-should not go before the caption of a figure or a table.
-
-Do not use \verb|\nonumber| inside the \verb|{array}| environment. It
-will not stop equation numbers inside \verb|{array}| (there won't be
-any anyway) and it might stop a wanted equation number in the
-surrounding equation.
-
-\subsection{Some Common Mistakes}\label{SCM}
-\begin{itemize}
-\item The word ``data'' is plural, not singular.
-\item The subscript for the permeability of vacuum $\mu_{0}$, and other common scientific constants, is zero with subscript formatting, not a lowercase letter ``o''.
-\item In American English, commas, semicolons, periods, question and exclamation marks are located within quotation marks only when a complete thought or name is cited, such as a title or full quotation. When quotation marks are used, instead of a bold or italic typeface, to highlight a word or phrase, punctuation should appear outside of the quotation marks. A parenthetical phrase or statement at the end of a sentence is punctuated outside of the closing parenthesis (like this). (A parenthetical sentence is punctuated within the parentheses.)
-\item A graph within a graph is an ``inset'', not an ``insert''. The word alternatively is preferred to the word ``alternately'' (unless you really mean something that alternates).
-\item Do not use the word ``essentially'' to mean ``approximately'' or ``effectively''.
-\item In your paper title, if the words ``that uses'' can accurately replace the word ``using'', capitalize the ``u''; if not, keep using lower-cased.
-\item Be aware of the different meanings of the homophones ``affect'' and ``effect'', ``complement'' and ``compliment'', ``discreet'' and ``discrete'', ``principal'' and ``principle''.
-\item Do not confuse ``imply'' and ``infer''.
-\item The prefix ``non'' is not a word; it should be joined to the word it modifies, usually without a hyphen.
-\item There is no period after the ``et'' in the Latin abbreviation ``et al.''.
-\item The abbreviation ``i.e.'' means ``that is'', and the abbreviation ``e.g.'' means ``for example''.
-\end{itemize}
-An excellent style manual for science writers is \cite{b7}.
-
-\subsection{Authors and Affiliations}
-\textbf{The class file is designed for, but not limited to, six authors.} A 
-minimum of one author is required for all conference articles. Author names 
-should be listed starting from left to right and then moving down to the 
-next line. This is the author sequence that will be used in future citations 
-and by indexing services. Names should not be listed in columns nor group by 
-affiliation. Please keep your affiliations as succinct as possible (for 
-example, do not differentiate among departments of the same organization).
-
-\subsection{Identify the Headings}
-Headings, or heads, are organizational devices that guide the reader through 
-your paper. There are two types: component heads and text heads.
-
-Component heads identify the different components of your paper and are not 
-topically subordinate to each other. Examples include Acknowledgments and 
-References and, for these, the correct style to use is ``Heading 5''. Use 
-``figure caption'' for your Figure captions, and ``table head'' for your 
-table title. Run-in heads, such as ``Abstract'', will require you to apply a 
-style (in this case, italic) in addition to the style provided by the drop 
-down menu to differentiate the head from the text.
-
-Text heads organize the topics on a relational, hierarchical basis. For 
-example, the paper title is the primary text head because all subsequent 
-material relates and elaborates on this one topic. If there are two or more 
-sub-topics, the next level head (uppercase Roman numerals) should be used 
-and, conversely, if there are not at least two sub-topics, then no subheads 
-should be introduced.
-
-\subsection{Figures and Tables}
-\paragraph{Positioning Figures and Tables} Place figures and tables at the top and 
-bottom of columns. Avoid placing them in the middle of columns. Large 
-figures and tables may span across both columns. Figure captions should be 
-below the figures; table heads should appear above the tables. Insert 
-figures and tables after they are cited in the text. Use the abbreviation 
-``Fig.~\ref{fig}'', even at the beginning of a sentence.
-
-\begin{table}[htbp]
-\caption{Table Type Styles}
-\begin{center}
-\begin{tabular}{|c|c|c|c|}
-\hline
-\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
-\cline{2-4} 
-\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
-\hline
-copy& More table copy$^{\mathrm{a}}$& &  \\
-\hline
-\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
-\end{tabular}
-\label{tab1}
-\end{center}
-\end{table}
+\subsubsection{Presto architecture} \label{arch}
+Presto relies on a master-slave architecture to distribute the work among the nodes of a Presto cluster. There is one \textit{coordinator} node (there is no possibility of setting up more than one coordinator), and several \textit{worker} nodes. Figure \ref{architecture} shows an overview of this architecture.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics{fig1.png}}
-\caption{Example of a figure caption.}
-\label{fig}
+\centerline{\includegraphics[scale=0.4]{query_execution.png}}
+\caption{Overview of the Presto architecture.}
+\label{architecture}
 \end{figure}
 
-Figure Labels: Use 8 point Times New Roman for Figure labels. Use words 
-rather than symbols or abbreviations when writing Figure axis labels to 
-avoid confusing the reader. As an example, write the quantity 
-``Magnetization'', or ``Magnetization, M'', not just ``M''. If including 
-units in the label, present them within parentheses. Do not label axes only 
-with units. In the example, write ``Magnetization (A/m)'' or ``Magnetization 
-\{A[m(1)]\}'', not just ``A/m''. Do not label axes with a ratio of 
-quantities and units. For example, write ``Temperature (K)'', not 
-``Temperature/K''.
+On the first level, the Presto client exposes three interfaces to query data, a Command Line Interface (CLI), a Java Database Connectivity driver (JDBC), and a REST API \cite{sethi-2019}. The first one acts as a traditional CLI offered by many database systems, where the user can interactively execute queries through a console; the JDBC driver allows any Java application to easily connect and query data from Presto, and the REST API exposes a few endpoints to execute queries through HTTP (as shown in Appendix \ref{rest-api}).
 
-\section*{Acknowledgment}
+Queries sent through any of the clients will arrive at the Coordinator node (brown box in figure \ref{architecture}), where several operations are performed on the received SQL by the following components: \cite{sethi-2019}
 
-The preferred spelling of the word ``acknowledgment'' in America is without 
-an ``e'' after the ``g''. Avoid the stilted expression ``one of us (R. B. 
-G.) thanks $\ldots$''. Instead, try ``R. B. G. thanks$\ldots$''. Put sponsor 
-acknowledgments in the unnumbered footnote on the first page.
+\begin{itemize}
+    \item An ANTLR-based \textbf{parser} that transforms the SQL into a syntax tree.
+    \item The \textbf{analyzer} uses the syntax tree to perform tasks such as identifying subqueries, aggregations, and joins.
+    \item The \textbf{logical planner} uses all this information to create a highly-abstracted tree-shaped plan of all the operations that are involved in a query, where each operation is represented by a node. Figure \ref{logical_plan} shows an example of how a logical plan looks like.
+    \item The logical plan is the input to the \textbf{plan optimizer}. This component transforms the logical plan into an enhanced version of it that includes more details on how the decomposition and orchestration of the operations can be done. The result is an efficient plan of the execution of the query, that tries to maximize the parallelism as follows:
+    \begin{itemize}
+        \item \textit{Inter-node parallelism}. First, the optimizer analyses parts of the plan that can be executed in parallel in the worker nodes. These parts are called \textit{stages}, and are further subdivided into individual \textit{tasks}. A task is the unit of work that is distributed by the coordinator to the worker's nodes, and represents the parallelism of the system. Stages and tasks can be observed in detail in figures \ref{distributed_plan} and \ref{optimized_plan}.
+        \item \textit{Intra-node parallelism}. The optimizer is also responsible for identifying pieces of tasks that could benefit from being executed across several threads on one node, by using \textit{pipelines}. The decomposition of a task into pipelines can be observed in figure \ref{optimized_plan}. The benefit of maximizing intra-node parallelism is that it can be much more efficient than parallelism among different nodes. This parallelism will gain on reduced latency and cost reduction in thread communication \cite{sethi-2019}. Because of this, maximizing intra-node parallelism is one of the main goals of the optimizer, since it can lead to significant speedups.
+    \end{itemize}
+    \item Finally, the \textbf{scheduler} distributes tasks to worker nodes, by taking into consideration the best order of execution and where each task should be executed to achieve the best result.
+\end{itemize}
 
-\section*{References}
+Lastly, the Worker nodes are in charge of executing the received tasks by processing data fetched from the data sources. To do this, workers receive what they are called \textit{splits}, handles to a piece of data in a specific data source, and are responsible for processing the data pointed by these splits and executing their assigned tasks on them \cite{sethi-2019}.
 
-Please number citations consecutively within brackets \cite{b1}. The 
-sentence punctuation follows the bracket \cite{b2}. Refer simply to the reference 
-number, as in \cite{b3}---do not use ``Ref. \cite{b3}'' or ``reference \cite{b3}'' except at 
-the beginning of a sentence: ``Reference \cite{b3} was the first $\ldots$''
+The process of assigning splits to worker nodes is done lazily by the coordinator. This means that they are assigned dynamically to a queue of splits that every worker node holds, based on the length of its queue. This way, the coordinator can easily balance the load among the nodes on the cluster, achieving also earlier results from the queries \cite{sethi-2019}.
 
-Number footnotes separately in superscripts. Place the actual footnote at 
-the bottom of the column in which it was cited. Do not put footnotes in the 
-abstract or reference list. Use letters for table footnotes.
+Similarly, as the client, workers expose a REST API that is used internally by the coordinator and other workers to send tasks, exchange information, etc. Even though it is out of the scope of this project, it could be used to connect directly to a worker node, or even to launch custom tasks without utilizing the Presto coordinator. More information is available at \cite{the-presto-foundation-no-date}.
 
-Unless there are six authors or more give all authors' names; do not use 
-``et al.''. Papers that have not been published, even if they have been 
-submitted for publication, should be cited as ``unpublished'' \cite{b4}. Papers 
-that have been accepted for publication should be cited as ``in press'' \cite{b5}. 
-Capitalize only the first word in a paper title, except for proper nouns and 
-element symbols.
+\subsubsection{Execution of a query in Presto}
+To better illustrate Presto's architecture, this subsection details how a query received by the system would be processed step by step in all the components of the system. Let us consider the following query:
 
-For papers published in translation journals, please give the English 
-citation first, followed by the original foreign-language citation \cite{b6}.
+\begin{lstlisting}
+SELECT o.order_key, sum(l.extended_price)
+FROM orders o
+JOIN lineitem l
+    ON l.order_key = o.order_key
+WHERE o.order_date < date('1995-03-15')
+GROUP BY o.order_key
+\end{lstlisting}
 
-\begin{thebibliography}{00}
-\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
-\bibitem{b2} J. Clerk Maxwell, A Treatise on Electricity and Magnetism, 3rd ed., vol. 2. Oxford: Clarendon, 1892, pp.68--73.
-\bibitem{b3} I. S. Jacobs and C. P. Bean, ``Fine particles, thin films and exchange anisotropy,'' in Magnetism, vol. III, G. T. Rado and H. Suhl, Eds. New York: Academic, 1963, pp. 271--350.
-\bibitem{b4} K. Elissa, ``Title of paper if known,'' unpublished.
-\bibitem{b5} R. Nicole, ``Title of paper with only first word capitalized,'' J. Name Stand. Abbrev., in press.
-\bibitem{b6} Y. Yorozu, M. Hirano, K. Oka, and Y. Tagawa, ``Electron spectroscopy studies on magneto-optical media and plastic substrate interface,'' IEEE Transl. J. Magn. Japan, vol. 2, pp. 740--741, August 1987 [Digests 9th Annual Conf. Magnetics Japan, p. 301, 1982].
-\bibitem{b7} M. Young, The Technical Writer's Handbook. Mill Valley, CA: University Science, 1989.
-\end{thebibliography}
-\vspace{12pt}
-\color{red}
-IEEE conference templates contain guidance text for composing and formatting conference papers. Please ensure that all template text is removed from your conference paper prior to submission to the conference. Failure to remove the template text from your paper may result in your paper not being published.
+\vspace{1mm}
+This query is a simplified version of Query 3 from the TPC-H dataset used in this project. Once this query has been received parsed and analyzed by the coordinator, the logical planner would create a plan similar to what is shown in figure \ref{logical_plan}.
 
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.4]{logical_plan.png}}
+\caption{Logical plan of a query \cite{sethi-2019}}
+\label{logical_plan}
+\end{figure}
+
+This logical plan shows the high-level decomposition Presto performs from a simple aggregation query that includes a \textit{join} statement. First, the lower-level nodes represent the scanning of the two tables that participate in the query, having one node to apply a filter to one of them because it forms part of a \textit{where} statement. Then, the \textit{join} operation depends on the result of the scans (and the filtering), and finally, we have the aggregation as the last operation.
+
+Next, as mentioned previously, the plan optimizer transforms the logical plan into an enhanced, more physical version of it that tries to maximize the parallelism of the query. This optimized version can be observed in Figure \ref{distributed_plan}. As it can be seen, the logical operations that were present in the logical plan are now mapped to different operations that have a lower degree of abstraction, and they have been grouped into stages. An arrow from one operation to another indicates that the destination operation depends upon the results of the source operation, and if an arrow crosses two stages, it means one stage depends upon the other, and thus, those two stages cannot run in parallel.
+
+If we analyze this plan we can see that Stage 3 and Stage 4 could be executed in two different nodes, and each node would be reading the content from one different table (orders and lineitem). Stage 3 has one additional operation, which involves filtering the orders rows to match the \textit{where} predicate. Stage 2 deals with joining the resulting rows from the previous stages, and applying a partial aggregation to them. This partial aggregation is a way to increase the efficiency of aggregation by applying the aggregation function to different subsets of the data independently, which are then combined to produce the final results in Stage 1 \cite{postgresql-2021}. The final stage simply outputs the results to the client that submitted the query.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.28]{distributed_plan.png}}
+\caption{Distributed plan of a query \cite{sethi-2019}}
+\label{distributed_plan}
+\end{figure}
+
+One last refinement of this plan takes care of specifying pieces of work that can be done in parallel inside a node, using \textit{pipelines} as mentioned above. This last step can be observed in Figure \ref{optimized_plan}, where the division into pipelines of a task in Stage 2 is shown.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.35]{optimized_plan.png}}
+\caption{Optimized plan of a query \cite{sethi-2019}}
+\label{optimized_plan}
+\end{figure}
+
+When a worker node receives the assignment of Task 1, it also receives which pipelines the task is composed of, so it is able to distribute those pipelines that are parallelizable among different threads and improve the efficiency of the query execution.
+
+\subsubsection{Presto design decisions}
+After going through Presto's detailed architecture, let us analyze now some design decisions that were made when developing Presto and that are relevant to better understand Presto and thus, are important for our research.
+
+\begin{enumerate}[label=\alph*.]
+    \item\textit{Split assignment}. As explained before, the coordinator node allocates \textit{splits} in a lazy way to coordinators, seeking to minimize split query size to obtain better results. This brings additional benefits, such as being able to produce results without having to process all the data or avoiding holding all the query metadata in memory. However, this approach comes with the cost of increased difficulty to estimate query progress, which can be an issue for certain scenarios \cite{sethi-2019}.
+    \item\textit{Data exchange among nodes}. When one node produces some piece of data that will be later used by another node, it temporarily stores it in an in-memory buffer (referred to as \textit{shuffle}) that can be consumed later by other nodes using HTTP. The decision behind this action instead of persisting the data to disk –as other engines do–, was taken to minimize response time, which was critical in certain scenarios at Facebook \cite{sethi-2019}. This implementation has the downside of requiring higher memory sizes to hold all this data, but engineers at Presto have prioritized performance over resource utilization.
+    \item\textit{Fault tolerance}. One key aspect of Presto is that it does not provide any fault tolerance mechanism for coordinator or worker node failures. When a worker fails, all the queries running on that node will fail and there is no way to recover their state. Moreover, when the coordinator fails, the whole cluster crashes, and everything that was running on that cluster is lost.
+    \item\textit{Static configuration}. All the configuration made on a Presto cluster has to be introduced statically before startup. This means that changes to how a cluster works may require the complete reboot of the cluster \cite{sethi-2019}.
+\end{enumerate}
+
+\subsection{Apache Kafka}
+Presto, as a query engine, does not hold any data by itself. Thus, to be able to perform some benchmarking, it is needed a data source that could provide Presto with information to query. For this purpose, we chose Apache Kafka, a distributed messaging system developed for delivering high volumes of log data with low latency \cite{kreps-2011}.
+
+In general, log data is any kind of system-generated information, such as user activity (logins, clicks, etc.) or system metrics, like CPU, memory, or disk utilization \cite{kreps-2011}. Apache Kafka is an open-source messaging system for log processing originally developed at LinkedIn and widely used in industry nowadays \cite{me-me-thein-2014}.
+
+In order to get a sense of how Kafka works, some key elements are worth describing \cite{kreps-2011}:
+
+\begin{itemize}
+    \item A \textbf{message} is a simple payload of bytes that is the center of the Kafka design.
+    \item Messages can be grouped in \textbf{topics}, which are streams of messages of a certain kind.
+    \item A \textbf{producer} feeds messages to a specific topic.
+    \item \textbf{Consumers} subscribe to one or more topics and consume the messages delivered by producers.
+    \item Messages are then stored in stateless servers called \textbf{brokers}. They are designed so that information such as how much each consumer has consumed is maintained by the consumer itself, not by the broker. By doing that, these servers are not as complex as if they had to store and apply logic to that configuration.
+\end{itemize}
+
+In general, we can see Kafka works as a traditional publisher-subscriber system, but it introduces some advantages by making use of its distributed capabilities. Its basic architecture can be observed in figure \ref{kafka_arch}. It is composed of a series of brokers that provide data. This data is classified as topics that are later distributed among the brokers for load balancing purposes.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.35]{kafka.png}}
+\caption{Kafka architecture design \cite{kreps-2011}}
+\label{kafka_arch}
+\end{figure}
+
+As shown in the figure \ref{kafka_arch}, producers and consumers are generating and consuming messages at the same time from more than one broker. And as it can also be observed, there is no concept of \textit{master} node in this network. Rather than relying on one node to execute coordination tasks, Kafka does it in a decentralized way, with the main purpose of avoiding unnecessary overheads and being careful with having an extra element in the network that can contribute to failures \cite{kreps-2011}.
+
+To handle this coordination, Kafka relies on an external system called Zookeeper, also from the Apache Foundation. Zookeeper is a system that handles the coordination issues in distributed environments, such as leader elections, membership operations or distributed synchronization \cite{haloi2015apache}. Furthermore, Zookeeper is also distributed itself, so the data it manages has high availability and reliability \cite{the-apache-software-foundation-2021}.
+
+Zookeeper is used by Kafka mainly for the following purposes \cite{kreps-2011}:
+
+\begin{itemize}
+    \item Detecting the addition and removal of brokers and consumers.
+    \item Launching a rebalance process whenever a broker is added or removed.
+    \item Maintaining some relationships among consumers and brokers to notify them about changes that occur in the network.
+\end{itemize}
+
+\subsubsection{Kafka in our project}
+With this overview of Kafka, let us focus now on why it has been chosen to provide data to our Presto installation.
+
+Firstly, there was a practical benefit in benchmarking Presto with a distributed messaging processing system. The Scalable Computing Sofware Laboratory (SCS) at IIT is currently working on a distributed shared log store named Chronolog. Chronolog aims to overcome some of the problems of current messaging systems by using the physical time to avoid the need for centralized synchronization points \cite{chronolog}.
+
+Because of this, testing how Presto is capable of working with a log system as Kafka is interesting as Chronolog will eventually require a query engine for its log data.
+
+Secondly, we found it interesting to work with yet another distributed system as Kafka to extend our knowledge in this field. This paper is part of the coursework of a course in parallel and distributed systems, so we were very interested in studying a little about distributed data sources.
+
+\section{Benchmark Design}\label{benchmark}
+Benchmarking is a common technique used in many fields in order to get evaluations from a product such as its performance, its efficiency, or any of its other properties. An example of a benchmark is the one that can be executed during a car development phase. A benchmark has to be performed to acknowledge the car's endurance through time, its effectiveness in risky environments, the rate of gas consumed per mile, etc.
+
+In our project, Presto is going to be tested to evaluate its performance during execution by finding out the time that spends querying large datasets. For that we will use the TPC-H benchmark, a widely used benchmark in many software systems throughout the years –it was first launched in 1999. Although it is an old dataset and there may be newer alternatives, this benchmark is still used nowadays and it is still a good indicator of performance for many systems.
+
+\subsection{What is a benchmark}
+A benchmark is a tool used for the evaluation and comparison of systems according to specific characteristics, such as performance, dependability, or security. \cite{v-kistowski-2015} That means that a benchmark is focused on measuring several aspects of a system to evaluate its characteristics and to later compare it to other similar systems. The evaluation and comparison of these characteristics are what will later show whether a system is "better" than others, although this will highly depend on the type of benchmark used – different benchmarks may be more suitable for different tasks.
+
+Benchmarks are usually composed of:
+\begin{itemize}
+    \item \textbf{Dataset}: set of data used in the benchmark. It may contain any kind of information, but it usually includes real-life data. TPC-H uses data from the sales and distribution system of a retailer.
+    \item \textbf{Instructions}: several actions that should be performed on the dataset to evaluate a system. TPC-H contains a set of queries that can be executed to obtain different useful metrics.
+\end{itemize}
+
+Anyone can build a benchmark of their own, however not every benchmark can be considered useful for an evaluation. Any good benchmark should fulfill these characteristics:
+\begin{itemize}
+    \item \textbf{Relevance}: the dataset should be relevant in the sense that it should contain data that is worth for any customer, or that it should contain information from a real-life situation.
+    \item \textbf{Reproducibility}: the results that came from the execution of the benchmark should stay similar along with several executions if the same configuration environment is used.
+    \item \textbf{Fairness}: the use of certain system configurations should not be specifically limited by the benchmark.
+    \item \textbf{Verifiability}: the results of the benchmark should be considered accurate with a high degree of confidence.
+    \item \textbf{Usability}: the benchmarks should be easily reproducible in other environments.
+\end{itemize}
+
+Usually, benchmarking relies on how the system performs in real-life situations, to make sure the system is useful, but it may also be used to test a system by implementing several edge cases that push the programs to its limits, to ensure correctness is preserved in any case.
+
+\subsection{TPC-H dataset}
+TPC-H is the benchmark chosen for this research, the main reason being TPC-H is one of the most used benchmarks in the industry, even nowadays.
+
+TPC-H was launched in 1999 and has been widely used in many other projects and papers.
+It was developed by the TPC organization, an acronym meaning Transaction Processing Performance Council. The organization was founded in 1989 by several companies, affiliates, and representatives with the need to create a standard for benchmarking that could be trusted and could be interpreted in the same way by all the industry.
+TPC is responsible for creating several benchmarks related to transactions processing for different purposes \cite{shanley-1998}. Each of these benchmarks serves a specific purpose or is specific to a certain scenario.
+
+As stated on their page, the main ideas that go along with the TPC organization are:
+\begin{enumerate}
+    \item Creating good benchmarks.
+    \item Creating a good process for reviewing and monitoring those benchmarks.
+\end{enumerate}
+
+TPC-H is one of the benchmarks produced by TPC. It is a decision support benchmark that contains information about activities of any industry that involves the selling and distribution of products worldwide. It was first introduced in February 1999, and TPC still supports it, being its last update made on February 2021. As shown in the document describing this standard benchmark, TPC-H was developed to solve critical business questions on a large-sized database using complex queries. \cite{transaction-processing-performance-council-2021}
+
+When this benchmark was selected we thought that its main feature was that it had a large database. However, there are more features that make TPC-H interesting:
+
+\begin{itemize}
+    \item \textbf{Dataset}: the dataset described for TPC-H is not provided with the program. Rather, a generator of data was provided. This enables anyone to create a dataset as large as wanted that complies with TPC-H design. Also, it makes the dataset lightweight in the sense that it can just be generated when needed.
+    \item \textbf{Queries}: as described in \cite{boncz-2014}, TPC-H works as a good evaluator of programs. The queries that are described in the standard are meant to push any program to its limits by executing quite complex operations.
+    \item \textbf{Refresh functions}: to maintain the data alive and not just let the data static through all the evaluations, a series of refresh functions are defined in the standard that changes the updates of the dataset during execution.
+\end{itemize}
+
+With that, we changed the way we wanted to analyze the results of the benchmark and we changed the focus on how Presto would handle the challenging queries provided by TPC-H. In \cite{boncz-2014}, they call these difficulties "choke points".
+
+A "choke point" is one of those technological challenges underlying a benchmark whose resolution will significantly improve the performance of a product.
+TPC-H queries are oriented to exploit "choke points" that may prove a challenge for any program. If the Presto engine manages to overcome these challenges without having problems, then that means that the engine's performance will be good in those situations too.
+
+There are several "choke points" that can be extracted from the queries described in the TPC-H benchmark. As describing each of them may be out of the scope of this project, only the categories in where they are classified will be mentioned. The full list of choke points can be found at \cite{boncz-2014}.
+
+\subsubsection{Aggregation performance}
+Contains 4 choke points whose challenges revolve around the aggregations produced on queries. They will affect the performance of group by and aggregation operations.
+
+\subsubsection{Join performance}
+Contains 4 choke points that will focus on the performance of join operations. The join operation usually takes the most cost, so it is interesting to evaluate whether joins perform well.
+
+\subsubsection{Data access locality}
+Locality is important in order to get quicker answers from queries. In this section there are 3 different choke points, all of them evaluated without taking into account materialized views. A materialized view is a resource used in many databases that allow to store physically intermediate results from a query, making later queries faster. However, as it will be better to evaluate the worst scenario possible, TPC-H does not use these resources.
+
+\subsubsection{Expression calculation}
+The TPC-H queries can be categorized into 3 different subcategories, arithmetic expressions, boolean expressions in joins and selections, and string matching. Because queries 1 and 6 show the most calculations among all, this section focuses on them and divides even further the subcategories for better precision of the many possible performance evaluations.
+
+\subsubsection{Correlated subqueries}
+Many of the queries contain subqueries, meaning that they can be applied some sort of flattening in order to simplify the expressions. There are 3 different choke points in this category.
+
+\subsubsection{Parallelism and concurrency}
+TPC-H standard allows having two different kinds of tests: the throughput and the power tests. The first one evaluates the concurrency of querying while updates are executed. The second one evaluates the mean of the performance of the query itself.
+
+\subsection{Our benchmark stack}
+To evaluate presto, we have built a so-called "benchmark stack". This stack represents the different layers that are part of the installation we have deployed to execute the benchmark and serves us to describe the list of tasks that we performed during this part of the project.
+These layers are shown in figure \ref{benchmark_stack}, and we are also dividing this section into these subsections to define each of them separately.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.2]{benchmark_stack.png}}
+\caption{Diagram of the benchmark stack}
+\label{benchmark_stack}
+\end{figure}
+
+In these subsections, there will not be any details on the specific technical steps performed to execute the benchmark. That information can be found at \cite{perez-rodriguez-2021}.
+
+\subsubsection{TPC-H dataset}
+This is what we did to find the dataset.
+
+First, we looked on some papers a dataset that could be used with Presto. \cite{ciritoglu-2020} \cite{qin-2017} \cite{valuko-2018} Finally, we found in the Presto documentation a tutorial on how to connect Kafka. \cite{the-presto-foundation-no-date} In that tutorial there is a link to download an executable that can be executed on a Kafka instance to generate the dataset.
+
+To run the executable we had to set up Kafka on the nodes we wanted the data to be stored in. The information needed for the script is:
+
+\begin{itemize}
+    \item \textbf{Brokers URLs}: the script will store the data in the nodes provided as parameters, dividing the dataset among all nodes equally. To identify each of the nodes, the script uses the broker URLs configured once Kafka was started.
+    \item \textbf{Prefix}: prefix to add to each table's name. This parameter was left as the default shown in the tutorial.
+    \item \textbf{TPC-H type}: because the dataset is generated at the moment, the size of it can be defined by the executable.
+\end{itemize}
+
+The executable provided multiple sizes of the dataset. While we were testing Presto and their related programs we decided to start with the size "tiny", a dataset of 10MB. Once we felt we were ready to start the real runs and we had access to some storage nodes, we headed to rise the size of the dataset. We originally wanted to get a database as large as possible, and so we tried to go with the sf100000 option, a dataset that takes almost 100TB.
+
+Once we realized that option was impossible to achieve, as the nodes did not have that storage capability, we followed by using the sf100 option. Although this one worked, we saw that the size was still too big for our project, as a batch of queries could take more than a day to process, and this would not allow us to obtain all the results we wanted. In the end, we decided to stay with the sf1 option, a dataset containing 1GB of data.
+
+The data contained in the dataset are all automatically generated, and so it does not have any real-life content, making the actual results of the queries not that important. Although the information is not real, the distribution of the tables is. The dataset contains 8 tables of information regarding the distribution and sales of any industry, a diagram is shown in figure \ref{tpch_dataset_diagram}.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.2]{tpch_dataset_tables.png}}
+\caption{Diagram of the TPC-H tables}
+\label{tpch_dataset_diagram}
+\end{figure}
+
+Along with the figure, scales for each table's size are provided in order to know how to generate the data. The loader executable used in the research uses these scales to generate the data and inject it into Kafka.
+
+\subsubsection{Kafka installation}
+Kafka is the method used to store the dataset generated in the step above. Because it is not one of the main points of this research, in this section we will briefly explain what we did in order to set up Kafka.
+
+First, Zookeeper has to be launched to be able to start Kafka. This step is required because Kafka does not have any built-in system that coordinates the access to the brokers. Zookeeper should be launched on each of the nodes where Kafka is meant to be launched.
+After that, Kafka can be launched on the selected nodes.
+
+Some simple configuration was needed like the port where Zookeeper and Kafka will start listening, the URLs to the other nodes, and a unique id for each broker.
+
+Once every node has been launched, the dataset generator executable should be executed on any broker. From there, Zookeeper and Kafka will distribute the data among all available brokers.
+
+The Kafka brokers were launched on the storage nodes of our system. We followed this decision because we needed nodes where a great amount of data could be stored. During the testing phase, we only had one and two nodes executing both Zookeeper and Kafka. During this part, we also decided to change the place the data was stored to the SSD in order to achieve faster execution from Kafka.
+
+After that, we followed by scaling to 4 Kafka nodes. At this point, we had several troubles relaunching Kafka to an operative state. The main problem that we had was that the data wasn't being redistributed equally among the nodes, leaving 2 nodes fully empty. We tried to start anew and remove the data, but that failed many times. That is because, when relaunched, Kafka had still the data in the same nodes, without performing any distribution to the missing ones. That left us with the impression that Kafka's replication mechanism worked well.
+
+In the end, we managed to remove all references to old instances of the dataset, relaunched Kafka, and refilled with the generated dataset. In this case, the distribution was carried out correctly.
+
+Lastly, we decided to downscale again the Kafka nodes to 2. This decision came because we thought that there was a bottleneck in the provision of data, as described in the evaluation section.
+
+\subsubsection{Presto installation}
+Launching Presto was not nearly as troublesome as Kafka's execution. That meant that once we had the "database" up, we could start almost immediately to query it with Presto.
+We decided to install Presto on the compute nodes as we thought that would affect its performance for good. These compute nodes had available a large-sized memory and many threads of execution, and as described by many papers, Presto is very resource-hungry. \cite{sethi-2019} \cite{facebook-presto-no-date}
+
+Presto enables many configurations before launch. These are the files that were used to configure Presto during the research:
+
+\begin{itemize}
+    \item \textbf{\textit{jvm.config}}: list of flags that can be set to the JVM. Presto is a Java program running on the Java Virtual Machine, and so there is only so much memory reserved for it. Presto allows changing the available memory setting with ease, apart from other settings related to the JVM. Another setting good to mention is the \textit{ExitOnOutOfMemoryError}. This setting comes as a default in the Presto configuration mainly because once there is a memory failure, the results of future queries may be corrupted \cite{the-presto-foundation-no-date}.
+    \item \textbf{\textit{config.properties} - Coordinator}: there must be a node that will coordinate the tasks and provide the splits to each worker node. This node will have a setting indicating that the node is the coordinator, in order to differentiate it from the other nodes. Also, the setting indicating the link to the coordinator node is required. There are also several configurations related to how much memory should be used by the coordinator node, and those depend on the context.
+    \item \textbf{\textit{config.properties} - Workers}: the nodes that will be tasked with different parts of the queries. They are always instructed by the worker node. Worker nodes have the same memory configuration as the ones present in the coordinator node. Apart from that, a link to the coordinator must be provided in order to connect to it.
+\end{itemize}
+
+Regarding the coordinator link used in the worker nodes, it is used because there is no explicit configuration to configure the connection among nodes. They all connect to the coordinator, and the coordinator will then communicate with them directly.
+
+Important settings are the ones related to memory, and these are stored in each node's \textit{config.properties}. The JVM that executes Presto needs to have memory in order to evaluate a query, but the node also requires memory for the file descriptors opened by Presto. Because of that, there should be a memory balance between how many of it Presto can have and what the coordinator may need in order to communicate Presto with the database. Because this setting is what took most of the time of testing –and many of the benchmarking errors– during the evaluation of Presto, we decided to list each of these memory-related settings. A more thorough description can be found at \cite{saversky-2020}.
+
+\begin{itemize}
+    \item \textbf{\textit{max-memory-per-node}}: amount of user memory available for a query.
+    \item \textbf{\textit{max-total-memory-per-node}}: amount of user and system memory available for a query.
+    \item \textbf{\textit{max-memory}}: amount of available user memory through all worker nodes.
+    \item \textbf{\textit{max-total-memory}}: amount of available user and system memory through all worker nodes.
+\end{itemize}
+
+In the research, the same memory configuration was used for the coordinator and the worker nodes in all cases.
+
+Another configuration used for Presto, but not explicitly set in the configuration files, is the number of clients that may query Presto at the same time. By taking into account that variable, it was possible to evaluate the concurrent performance of Presto.
+
+At first, we decided to start with the default specifications made by Presto in its installation tutorial \cite{the-presto-foundation-no-date} using 1 worker node, an amount of 16GB of memory available to the JVM, from there we had max memory per node to be 1GB, max total memory per node to be 2GB and 50 GB to the max memory. The default value was used for the max total memory setting.
+
+In order to get even better results, we tried to scale to 4 Presto worker nodes and 4 Kafka nodes. Also, we maximized the worker nodes' memory configuration by setting the JVM memory to 46GB, max memory per node to 24GB, max total memory per node to 10GB and max memory to 96GB, and max total memory to default.
+Once we executed the same testing queries, we launched the benchmark. After the execution of two queries, the benchmark failed to raise an error related to not having enough memory for creating file descriptors to access the database. We tried then launching the same simple queries we tested first and they raised the same exception.
+
+After that, many more configurations were tried in order to get rid of that exception, but to no avail. After some more research, we found that the memory configuration may depend on the context. There may be more optimal configurations for querying datasets with large skew values, or for concurrent queries to the system. In the end, maximizing the memory for Presto is not always the most suitable option. \cite{saversky-2020}
+
+In that same source, we found a set of configurations that were specific to highly concurrent environments. That was also the last main configuration used, 32GB of memory available to the JVM, max memory per node to 4GB, max total memory per node to 5GB and max memory to 32GB, and max total memory to 40GB.
+
+With that configuration, the same exceptions happened, although on fewer occasions.
+
+\subsubsection{Presto benchmark driver}
+Presto provides an executable in the form of a \textit{.jar} that can be used to measure the performance of a Presto cluster. It is available on Presto's website, and only needs the following configuration to work:
+
+\begin{itemize}
+    \item A configuration file that has to be named \textit{suite.json}. This file will contain information about the queries that will be executed and the schema used for the queries. An example of this file can be found in our repository \cite{perez-rodriguez-2021}.
+    \item A set of queries provided as \textit{.sql} files stored in a directory named \textit{sql}. These are the queries the driver will run and track performance measures of.
+    \item The number of times each query will be run. The default value is three, and it was not modified during benchmarking.
+    \item The number of warm-up cycles for each query to be run before starting the evaluation. Even though the default value is one, it was raised to two to ensure the cluster was well warmed up before each query.
+    \item The URL of the coordinator of the cluster. The benchmark executable will connect to that link in order to reach Presto and run the queries.
+\end{itemize}
+
+All test cases were executed with this configuration. All that is left is to execute is the \textit{.jar}. For each query, the driver will report the following information:
+
+\begin{itemize}
+    \item \textbf{Wall time}: represents the actual time the query took to execute, measured since the query started running.
+    \item \textbf{Process CPU time}: the total time needed by the CPU to execute the query.
+    \item \textbf{Query CPU time}: the CPU time excluding operations not directly related to the execution of the query.
+\end{itemize}
+
+For all these aspects, the driver provides the median of the executions, the average, and the standard deviation (all in milliseconds). For our benchmark, we decided to use the average wall time, because we thought it represents better the execution time as seen by a user of a Presto cluster. Thus, each value shown in section \ref{results} represents the average wall time from running that query three times. Nevertheless, instead of showing the execution times in milliseconds, we transformed the values to seconds for readability purposes.
+
+\subsubsection{SQL queries}
+The execution of the benchmark is futile without having the actions to evaluate the performance of Presto. Luckily, TPC-H provides a set of complex queries compatible with the TPC-H dataset. These queries are made to exploit the "choke points" of a program, as described in the dataset section, and will probably push Presto to its limits. The "choke points" are mainly based on executions of large and difficult queries. We also added the challenge of making these complex queries concurrently by 2 and 4 clients, in order to also evaluate the performance of Presto when being queried by many clients.
+
+However, to make these queries executable, we needed to translate them into actual SQL code. The queries are presented in the TPC-H standard with pseudo-code that can be translated into SQL sentences understandable by Presto \cite{transaction-processing-performance-council-2021}. This took a rather large amount of time because there were 22 queries to translate and because some of the queries needed some changes in order to be compatible with Presto. Thankfully, some of these variations of the queries were also determined \textit{similar} by the TPC-H standard document, so our implementation follows the standard guidelines.
+
+A list of these translated queries can be found at the repository of this project \cite{perez-rodriguez-2021}.
+
+\section{Evaluation set-up} \label{setup}
+A really important part of the research could not have been done without the use of a computer capable of running Presto with some efficiency. Because of that, this section describes the environment in which our tests were conducted.
+
+\subsection{Hardware}
+As described before, our benchmark used a series of storage and compute nodes to be executed, which have the following characteristics:
+
+\begin{itemize}
+    \item \textbf{Compute nodes}:
+        \begin{itemize}
+            \item Storage: Samsung 960 Evo 250GB NVMe SSD or Toshiba OCZ RD400 256GB NVMe SSD, depending on the specific node. No HDD.
+            \item Memory: 47GB
+            \item CPU: Intel Xeon Silver 4114
+            \item Connection link: Mellanox 40Gbps adapter
+        \end{itemize}
+    \item \textbf{Storage nodes}:
+        \begin{itemize}
+            \item Storage: Samsung 860 Evo 250GB SATA SSD. Seagate 1TB SATA HDD, even though it has not been used in this evaluation.
+            \item Memory: 32GB
+            \item CPU: Quad-Core AMD Opteron
+            \item Connection link: Mellanox 40Gbps adapter, even though the network speed on these nodes is limited by the PCIe standard, which is around 1 GB/s.
+        \end{itemize}
+\end{itemize}
+
+\subsection{Software}
+Each of the nodes of the cluster had the following software installed:
+
+\begin{itemize}
+    \item OS: CentOS Linux 7
+    \item JDK: OpenJDK 1.8.0\_191
+    \item Python: Python 2.9
+    \item Presto: 0.264.1
+    \item Kafka: 2.13-3.0.0
+    \item Zookeeper: 3.6.3
+\end{itemize}
+
+\subsection{Configuration details} \label{configuration_details_subsection}
+The following values represent the configuration we have used to run Presto and Kafka in our environment. They are a combination of the default configuration of the systems, guidelines found researching online, and our experience running (and crashing) our test installation.
+
+\begin{itemize}
+    \item \textbf{Presto configuration}:
+    \begin{itemize}
+        \item \textit{Maximum memory per node}: 4Gb
+        \item \textit{Maximum total memory per node}: 5Gb
+        \item \textit{Maximum memory per query}: this value is set as the maximum memory per node times the number of worker nodes deployed (4, 8, etc.)
+        \item \textit{Maximum total memory per node}: this value is set as the maximum total memory per node times the number of worker nodes deployed (4, 8, etc.)
+        \item \textit{JVM maximum memory per node (Xmx)}: 32Gb
+        \item \textit{Scheduling work on the coordinator node}: false
+    \end{itemize}
+    \item \textbf{Kafka configuration}
+    \begin{itemize}
+        \item \textit{Number of network threads}: 12
+        \item \textit{Number of IO threads}: 12
+        \item \textit{Send buffer size}: 102400 bytes
+        \item \textit{Receive buffer size}: 102400 bytes
+        \item \textit{Maximum request size}: 104857600 bytes
+    \end{itemize}
+\end{itemize}
+
+\section{Results}\label{results}
+In this section, we present the performance results of our Presto benchmarking.
+
+First, figure \ref{chart_1} illustrates the execution times in seconds of a subset of the TPC-H queries for different numbers of concurrent clients, in our \textit{base} initial benchmarking configuration. This configuration was composed of five Presto nodes (one coordinator and four workers) and four Kafka nodes.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.7]{chart_1.png}}
+\caption{Query runtimes for a subset of TPC-DS}
+\label{chart_1}
+\end{figure}
+
+The chart shows a small increment in the execution time when we went from one to two concurrent clients, barely noticeable in certain queries, and slightly higher in others, like query 18 or query 21.
+
+Nevertheless, these increments seemed reasonable, so we increased the number of concurrent clients to four. At this point is where we started noticing a big leap in performance that was consistent across all the queries we executed.
+
+Because of this, we decided to make changes in our deployment to see if we could reduce this performance gap with four concurrent clients executing queries. The different setups we deployed can be observed in figure \ref{chart_2}.
+
+We tried scaling the number of Presto worker nodes to eight, maintaining the number of Kafka nodes, and also doing the inverse, this is, scaling the number of Kafka nodes to eight while keeping four Presto worker nodes. For this set of evaluations, we did not modify the number of clients (four). Our goal with these changes was to detect if there was a bottleneck in one of the two elements of the installation.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.7]{chart_2.png}}
+\caption{Query runtimes for different cluster configurations with four concurrent clients. 4P means 4 Presto worker nodes, 4K means 4 Kafka nodes, and so on}
+\label{chart_2}
+\end{figure}
+
+As it can be observed in figure \ref{chart_2}, augmenting the number of Presto worker nodes did not improve our results, but rather the opposite, as there were several queries where the execution times were even worse than before.
+
+However, increasing the number of Kafka nodes did reduce the overall execution times noticeably. Also, as it can be seen, there are many queries where there is no data for this specific cluster configuration. This is due to a big issue we faced benchmarking Presto. After some number of queries were executed, the remaining ones failed, supposedly due to an issue listing splits. This is an issue with Presto, and we have not been quite able to reach the root of the problem, even though we tried many different things to overcome it (changing Presto memory configuration and changing Kafka buffering configuration). In the end, we found a specific configuration that minimizes the number of errors when launching several queries from various clients at the same time. This configuration is shown at the start of the \ref{configuration_details_subsection} subsection and is detailed in the \ref{setup} section. More on this topic will be discussed in section \ref{conclusions}.
+
+As we were mentioning, the set-up that uses 8 Kafka nodes, even though being one of the best performance-wise, is the one that produces more errors. This is probably because more Kafka nodes results in more splits needed to retrieve all the data. That would make the data more sparse through the nodes, making Presto need more file descriptors in order to get the data. Therefore, fewer queries were needed to reach the point where no more splits can be retrieved.
+
+Because of this, we moved on and tried a very different configuration, reducing the number of Kafka nodes precisely to avoid these split errors. Thus, we deployed four Presto worker nodes querying data from only two Kafka nodes and ran our benchmark. And, perhaps surprisingly, this installation was the second best, only surpassed by the installation with eight Kafka nodes ---but unlike that configuration, this one allowed us to finish our set of tests with no errors.
+
+Finally, to test if we could extract more performance from this 2-node Kafka installation, we deployed eight Presto worker nodes. Nonetheless, as figure \ref{chart_2} shows, this installation does not achieve an overall better performance than the previous one, as some queries (q5, q10) were noticeably slower than before, even though others (q18, q21) were faster. Because of this, we consider that for our dataset size and specific environment, a deployment with four Presto worker nodes and two Kafka nodes may be ideal. Increasing the number of Presto workers has not been proved to achieve significant benefits, while having the downside of requiring more cluster nodes, so it is an overall worse configuration.
+
+Because of these findings, we decided to consolidate whether these results would hold for a smaller number of concurrent clients, and we re-run the scenario shown in figure \ref{chart_1} with the new configuration of four Presto workers and two Kafka nodes. The results of these executions are shown in figure \ref{chart_3} and figure \ref{chart_4}.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.7]{chart_3.png}}
+\caption{Query runtimes for two different cluster configurations with one single client. 4P means 4 Presto worker nodes, 4K means 4 Kafka nodes, and 2K means 2 Kafka nodes}
+\label{chart_3}
+\end{figure}
+
+As both figures show, this new configuration with two Kafka nodes reduces the execution times in every query (except for query 22). Therefore, we can say that for our environment, using two Kafka nodes is better than scaling up to four nodes. This may be related to the size of our dataset (1Gb), which does not fully utilize the whole data nodes. It would be an interesting extension of this project to test these configurations with bigger datasets, and evaluate if Presto can fully make use of a large collection of Kafka nodes filled with more data.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.7]{chart_4.png}}
+\caption{Query runtimes for two different cluster configurations with two concurrent clients. 4P means 4 Presto worker nodes, 4K means 4 Kafka nodes, and 2K means 2 Kafka nodes}
+\label{chart_4}
+\end{figure}
+
+So all in all, we can say that Presto has been capable of handling our benchmarking queries reasonably well. After increasing the concurrency of clients, once we found a point where the performance degradation was too high, we were able to successfully modify our cluster configuration to make better use of our resources, and we realized our bottleneck was not due to Presto. Furthermore, we found that increasing the number of Presto workers was not achieving higher performance, so in the end, we were able to reach the best configuration for our dataset.
+
+\section{Conclusion and future work} \label{conclusions}
+In this paper, we studied and evaluated Presto, a distributed open-source SQL query engine for working with large amounts of data. We have been able to fully understand how such a system is engineered and how it works internally, and we performed some benchmarks on a multi-node cluster environment to evaluate how it behaves under different conditions. In the end, we found one configuration that fitted our data and hardware characteristics, and we were able to understand where our performance degradation came from.
+
+But, during this process, we also found some issues that are worth mentioning.
+
+\begin{itemize}
+    \item We have found that it is impossible for Presto cannot have more than one coordinator per cluster. This introduces a single point of failure (which is even worse if we consider there is no fault tolerance at all), and also a potential bottleneck when one installation has to deal with numerous concurrent requests. According to Presto's GitHub \cite{meehan-2020}, it is something that is being evaluated for implementation, but as of the date this paper is being written, it is not yet available.
+    \item Presto needs many resources to operate. Based on our experiments, we have found that many times, our installation would become unavailable because the resource limit was reached (as mentioned in the results). We suspect that this is because Presto needs a lot of memory to work, and our nodes were not able to provide it, but given the characteristics of our dataset, we were surprised to find this. Probably, more research could be done to reach the root of the problem, but we were unable to find it and solve it.
+    \item Presto has split into another project called Trino. This would not be that important if it were not because the main creators had moved to this new project due to "different points of view from what Facebook wants of Presto" \cite{traverso-2020}.
+\end{itemize}
+
+That being said, Presto has many benefits, that have been outlined throughout the paper. A summary of them could be the following.
+\begin{itemize}
+    \item ANSI SQL interface to query a diverse set of data sources. Presto makes it very easy for anyone to extract insights from any data source system, providing traditional SQL interfaces that are accessible for most of the people who will be performing these tasks.
+    \item Simple installation. We have experienced the simplicity of deploying a Presto cluster, from a basic laptop installation for initial testing to a multi-node cluster deployment. We have seen that configuring and connecting Presto to a data source is quite easy and well explained in their documentation.
+    \item Performance. Presto utilizes all the resources it is capable of to maximize the overall performance of the queries it executes, so in situations where low latency is critical, Presto is a good solution.
+\end{itemize}
+
+Finally, we just wanted to mention that this work is far from being complete. Because of the scope of this project, we have not been able to compare Presto with some of its competitors. Furthermore, we have not been able to test it querying different data sources, and thus we could not test accessing data from Presto to more than one data source at the same time, one of its main selling points. Because of this, we hope to be able to continue this research in some way in the future, and of course, try to understand some of the problems we faced in this project that time constraints did not allow us.
+
+\appendices
+
+\section{Presto client Http Rest Api}\label{rest-api}
+The Presto client exposes the following endpoints available to submit queries using a REST API \cite{the-presto-foundation-no-date}:
+
+\begin{itemize}
+    \item \textit{POST} to \textit{/v1/statement}:
+        \begin{itemize}
+            \item Body of the request: the SQL query string
+            \item Result: a JSON document with the query results. If more results are available, \textit{nextUri} attribute will have the required value to fetch them. Attribute \textit{statementStats} provides statistics about the query execution.
+        \end{itemize}
+    \item \textit{GET} to \textit{nextUri}:
+    \begin{itemize}
+        \item Result: JSON with query results. If more results are available, \textit{nextUri} attribute with have the required value to fetch them.
+    \end{itemize}
+    \item \textit{DELETE} to \textit{nextUri} terminates the running query.
+\end{itemize}
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+\nocite{*}
 \end{document}
-
